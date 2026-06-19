@@ -7,11 +7,13 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gene_clinic';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB successfully'))
-  .catch((err) => console.error('Error connecting to MongoDB:', err));
+if (!MONGO_URI) {
+  console.error('Error: MONGO_URI is missing in the environment configuration (.env file).');
+  process.exit(1);
+}
+
 
 
 app.use(cors());
@@ -646,7 +648,15 @@ app.patch('/api/packages/:id', (req, res) => {
 });
 
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Connect to MongoDB and start the server only upon success
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Error: Failed to connect to MongoDB. Please check if your MONGO_URI is valid and the database is accessible.', err.message);
+    process.exit(1);
+  });
