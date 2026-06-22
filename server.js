@@ -7,16 +7,25 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
-
-if (!MONGO_URI) {
-  console.error('Error: MONGO_URI is missing in the environment configuration (.env file).');
+if (!process.env.MONGO_URI) {
+  console.error("MONGO_URI is missing. Please add it to environment variables.");
   process.exit(1);
 }
+const MONGO_URI = process.env.MONGO_URI;
 
 
 
-app.use(cors());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 
 
@@ -652,8 +661,8 @@ app.patch('/api/packages/:id', (req, res) => {
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('Connected to MongoDB successfully');
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
