@@ -578,7 +578,7 @@ app.get('/api/genetic-test-requests', (req, res) => {
 
 // Patient Registrations API
 app.post('/api/patient-registrations', (req, res) => {
-  const { name, dob, age, gender, phone, email, address, nic, emergencyContactName, emergencyContactNumber, reason, medicalCondition, currentMedications, consent } = req.body;
+  const { name, dob, age, gender, phone, email, address, nic, emergencyContactName, emergencyContactNumber, reason, medicalCondition, currentMedications, consent, uploadedReports } = req.body;
   if (!name || !phone || !email || consent === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -597,8 +597,9 @@ app.post('/api/patient-registrations', (req, res) => {
     reason: reason || '',
     medicalCondition: medicalCondition || '',
     currentMedications: currentMedications || '',
+    uploadedReports: uploadedReports || [],
     consent,
-    status: 'Active',
+    status: 'Registered',
     createdAt: new Date().toISOString()
   };
   patientRegistrations.push(newRegistration);
