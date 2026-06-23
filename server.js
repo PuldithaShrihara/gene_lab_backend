@@ -3,6 +3,14 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
+// Import Mongoose Models
+import Contact from './models/Contact.js';
+import GeneticTestRequest from './models/GeneticTestRequest.js';
+import Appointment from './models/Appointment.js';
+import PatientRegistration from './models/PatientRegistration.js';
+import PartnerLabInquiry from './models/PartnerLabInquiry.js';
+import Review from './models/Review.js';
+
 dotenv.config();
 
 const app = express();
@@ -124,7 +132,7 @@ const articles = [
     title: 'Genetics and Fitness Response',
     slug: 'genetics-and-fitness-response',
     summary: 'Discover how muscle fibers, injury recovery, and aerobic capacities are guided by DNA profile traits.',
-    content: 'Your body’s response to physical training is influenced by genetic factors. The ACTN3 gene, for instance, determines sprint power vs. endurance capacity, while COL1A1 affects ligament strength and injury susceptibility. Wellness genomics helps target exercise styles (high intensity vs. steady cardio) and structure appropriate recovery times to reduce injury risk.',
+    content: 'Your body\'s response to physical training is influenced by genetic factors. The ACTN3 gene, for instance, determines sprint power vs. endurance capacity, while COL1A1 affects ligament strength and injury susceptibility. Wellness genomics helps target exercise styles (high intensity vs. steady cardio) and structure appropriate recovery times to reduce injury risk.',
     category: 'Genomics & Wellness',
     date: 'June 18, 2026',
     author: 'Dr. Lahiru Prabodha',
@@ -174,46 +182,6 @@ app.get('/api/articles', (req, res) => {
 let config = {
   showPricing: true // Enabled by client request
 };
-
-// In-memory appointments database
-let appointments = [
-  {
-    id: '1',
-    name: 'Dilhan Perera',
-    phone: '+94 77 123 4567',
-    email: 'dilhan.perera@example.com',
-    age: '34',
-    appointmentType: 'Genetic report review',
-    location: 'Galle Clinic',
-    mode: 'In-person',
-    reason: 'Review genetic testing results for cardiomyopathy',
-    status: 'Confirmed',
-    date: '2026-06-18',
-    timeSlot: '09:00 AM',
-    geneticReport: 'cardiomyopathy_panel.pdf',
-    medicalReport: 'ecg_summary.pdf',
-    consent: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Nadeesha Silva',
-    phone: '+94 71 987 6543',
-    email: 'nadeesha.s@example.com',
-    age: '29',
-    appointmentType: 'Reproductive genetics consultation',
-    location: 'Colombo Clinic',
-    mode: 'Online',
-    reason: 'Pre-pregnancy genetic risk assessment',
-    status: 'Pending',
-    date: '2026-06-19',
-    timeSlot: '11:30 AM',
-    geneticReport: null,
-    medicalReport: null,
-    consent: true,
-    createdAt: new Date().toISOString()
-  }
-];
 
 // Test Packages Database (Annex 3)
 // Test Packages Database (Annex 3)
@@ -517,164 +485,215 @@ let testPackages = [
   }
 ];
 
-let contacts = [];
-let geneticTestRequests = [];
-let patientRegistrations = [];
-let partnerLabInquiries = [];
-let reviews = [];
+
+// =============================================
+// API ROUTES — All data persisted to MongoDB
+// =============================================
 
 // Contact API
-app.post('/api/contact', (req, res) => {
-  const { name, phone, email, subject, message, preferredContactMethod } = req.body;
-  if (!name || !phone) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, phone, email, subject, message, preferredContactMethod } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newContact = await Contact.create({
+      name,
+      phone,
+      email: email || '',
+      subject: subject || 'Contact Inquiry',
+      message: message || '',
+      preferredContactMethod: preferredContactMethod || 'phone',
+      status: 'Pending'
+    });
+    res.status(201).json(newContact);
+  } catch (err) {
+    console.error('Error creating contact:', err.message);
+    res.status(500).json({ error: 'Server error while saving contact' });
   }
-  const newContact = {
-    id: String(contacts.length + 1),
-    name,
-    phone,
-    email: email || '',
-    subject: subject || 'Contact Inquiry',
-    message: message || '',
-    preferredContactMethod: preferredContactMethod || 'phone',
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  };
-  contacts.push(newContact);
-  res.status(201).json(newContact);
 });
 
-app.get('/api/contact', (req, res) => {
-  res.json(contacts);
+app.get('/api/contact', async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.json(contacts);
+  } catch (err) {
+    console.error('Error fetching contacts:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Genetic Test Requests API
-app.post('/api/genetic-test-requests', (req, res) => {
-  const { name, phone, email, age, testCategory, reason, referralDetails, preferredContactMethod, consent } = req.body;
-  if (!name || !phone || !email || !testCategory || consent === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/genetic-test-requests', async (req, res) => {
+  try {
+    const { name, phone, email, age, testCategory, reason, referralDetails, preferredContactMethod, consent } = req.body;
+    if (!name || !phone || !email || !testCategory || consent === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newRequest = await GeneticTestRequest.create({
+      name,
+      phone,
+      email,
+      age: age || '',
+      testCategory,
+      reason: reason || '',
+      referralDetails: referralDetails || '',
+      preferredContactMethod: preferredContactMethod || 'email',
+      consent,
+      status: 'Pending'
+    });
+    res.status(201).json(newRequest);
+  } catch (err) {
+    console.error('Error creating genetic test request:', err.message);
+    res.status(500).json({ error: 'Server error while saving test request' });
   }
-  const newRequest = {
-    id: String(geneticTestRequests.length + 1),
-    name,
-    phone,
-    email,
-    age: age || '',
-    testCategory,
-    reason: reason || '',
-    referralDetails: referralDetails || '',
-    preferredContactMethod: preferredContactMethod || 'email',
-    consent,
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  };
-  geneticTestRequests.push(newRequest);
-  res.status(201).json(newRequest);
 });
 
-app.get('/api/genetic-test-requests', (req, res) => {
-  res.json(geneticTestRequests);
+app.get('/api/genetic-test-requests', async (req, res) => {
+  try {
+    const requests = await GeneticTestRequest.find().sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    console.error('Error fetching genetic test requests:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Patient Registrations API
-app.post('/api/patient-registrations', (req, res) => {
-  const { name, dob, age, gender, phone, email, address, nic, emergencyContactName, emergencyContactNumber, reason, medicalCondition, currentMedications, consent, uploadedReports } = req.body;
-  if (!name || !phone || !email || consent === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/patient-registrations', async (req, res) => {
+  try {
+    const { name, dob, age, gender, phone, email, address, nic, emergencyContactName, emergencyContactNumber, reason, medicalCondition, currentMedications, consent, uploadedReports } = req.body;
+    if (!name || !phone || !email || consent === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newRegistration = await PatientRegistration.create({
+      name,
+      dob: dob || '',
+      age: age || '',
+      gender: gender || '',
+      phone,
+      email,
+      address: address || '',
+      nic: nic || '',
+      emergencyContactName: emergencyContactName || '',
+      emergencyContactNumber: emergencyContactNumber || '',
+      reason: reason || '',
+      medicalCondition: medicalCondition || '',
+      currentMedications: currentMedications || '',
+      uploadedReports: uploadedReports || [],
+      consent,
+      status: 'Registered'
+    });
+    res.status(201).json(newRegistration);
+  } catch (err) {
+    console.error('Error creating patient registration:', err.message);
+    res.status(500).json({ error: 'Server error while saving registration' });
   }
-  const newRegistration = {
-    id: String(patientRegistrations.length + 1),
-    name,
-    dob: dob || '',
-    age: age || '',
-    gender: gender || '',
-    phone,
-    email,
-    address: address || '',
-    nic: nic || '',
-    emergencyContactName: emergencyContactName || '',
-    emergencyContactNumber: emergencyContactNumber || '',
-    reason: reason || '',
-    medicalCondition: medicalCondition || '',
-    currentMedications: currentMedications || '',
-    uploadedReports: uploadedReports || [],
-    consent,
-    status: 'Registered',
-    createdAt: new Date().toISOString()
-  };
-  patientRegistrations.push(newRegistration);
-  res.status(201).json(newRegistration);
 });
 
-app.get('/api/patient-registrations', (req, res) => {
-  res.json(patientRegistrations);
+app.get('/api/patient-registrations', async (req, res) => {
+  try {
+    const registrations = await PatientRegistration.find().sort({ createdAt: -1 });
+    res.json(registrations);
+  } catch (err) {
+    console.error('Error fetching patient registrations:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Partner Lab Inquiries API
-app.post('/api/partner-lab-inquiries', (req, res) => {
-  const { labName, contactPerson, phone, email, location, services, message } = req.body;
-  if (!labName || !contactPerson || !phone || !email) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/partner-lab-inquiries', async (req, res) => {
+  try {
+    const { labName, contactPerson, phone, email, location, services, message } = req.body;
+    if (!labName || !contactPerson || !phone || !email) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newInquiry = await PartnerLabInquiry.create({
+      labName,
+      contactPerson,
+      phone,
+      email,
+      location: location || '',
+      services: services || '',
+      message: message || '',
+      status: 'Pending'
+    });
+    res.status(201).json(newInquiry);
+  } catch (err) {
+    console.error('Error creating partner lab inquiry:', err.message);
+    res.status(500).json({ error: 'Server error while saving inquiry' });
   }
-  const newInquiry = {
-    id: String(partnerLabInquiries.length + 1),
-    labName,
-    contactPerson,
-    phone,
-    email,
-    location: location || '',
-    services: services || '',
-    message: message || '',
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  };
-  partnerLabInquiries.push(newInquiry);
-  res.status(201).json(newInquiry);
 });
 
-app.get('/api/partner-lab-inquiries', (req, res) => {
-  res.json(partnerLabInquiries);
+app.get('/api/partner-lab-inquiries', async (req, res) => {
+  try {
+    const inquiries = await PartnerLabInquiry.find().sort({ createdAt: -1 });
+    res.json(inquiries);
+  } catch (err) {
+    console.error('Error fetching partner lab inquiries:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Reviews API
-app.post('/api/reviews', (req, res) => {
-  const { name, serviceType, rating, review, consent } = req.body;
-  if (!name || !rating || !review || consent === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { name, serviceType, rating, review, consent } = req.body;
+    if (!name || !rating || !review || consent === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newReview = await Review.create({
+      name,
+      serviceType: serviceType || 'General Consultation',
+      rating: Number(rating),
+      review,
+      consent,
+      status: 'Pending'
+    });
+    res.status(201).json(newReview);
+  } catch (err) {
+    console.error('Error creating review:', err.message);
+    res.status(500).json({ error: 'Server error while saving review' });
   }
-  const newReview = {
-    id: String(reviews.length + 1),
-    name,
-    serviceType: serviceType || 'General Consultation',
-    rating: Number(rating),
-    review,
-    consent,
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  };
-  reviews.push(newReview);
-  res.status(201).json(newReview);
 });
 
-app.get('/api/reviews', (req, res) => {
-  res.json(reviews);
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (err) {
+    console.error('Error fetching reviews:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Stats Endpoint
-app.get('/api/stats', (req, res) => {
-  const pendingCount = appointments.filter(a => a.status === 'Pending').length;
-  const confirmedCount = appointments.filter(a => a.status === 'Confirmed').length;
-  const completedCount = appointments.filter(a => a.status === 'Completed').length;
-  
-  res.json({
-    totalAppointments: appointments.length,
-    pending: pendingCount,
-    confirmed: confirmedCount,
-    completed: completedCount,
-    activePatientsCount: 212,
-    testedCount: 178,
-    wellnessConsultations: 89
-  });
+app.get('/api/stats', async (req, res) => {
+  try {
+    const totalAppointments = await Appointment.countDocuments();
+    const pending = await Appointment.countDocuments({ status: 'Pending' });
+    const confirmed = await Appointment.countDocuments({ status: 'Confirmed' });
+    const completed = await Appointment.countDocuments({ status: 'Completed' });
+    const totalContacts = await Contact.countDocuments();
+    const totalTestRequests = await GeneticTestRequest.countDocuments();
+    const totalRegistrations = await PatientRegistration.countDocuments();
+    
+    res.json({
+      totalAppointments,
+      pending,
+      confirmed,
+      completed,
+      totalContacts,
+      totalTestRequests,
+      totalRegistrations,
+      activePatientsCount: totalRegistrations || 212,
+      testedCount: totalTestRequests || 178,
+      wellnessConsultations: 89
+    });
+  } catch (err) {
+    console.error('Error fetching stats:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Config Endpoint
@@ -691,57 +710,72 @@ app.post('/api/config', (req, res) => {
 });
 
 // Appointments API
-app.get('/api/appointments', (req, res) => {
-  res.json(appointments);
+app.get('/api/appointments', async (req, res) => {
+  try {
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    res.json(appointments);
+  } catch (err) {
+    console.error('Error fetching appointments:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-app.post('/api/appointments', (req, res) => {
-  const { 
-    name, phone, email, age, appointmentType, location, 
-    mode, reason, date, timeSlot, geneticReport, medicalReport, consent 
-  } = req.body;
-  
-  if (!name || !phone || !email || !age || !appointmentType || !location || !mode || !reason || consent === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/appointments', async (req, res) => {
+  try {
+    const { 
+      name, phone, email, age, appointmentType, location, 
+      mode, reason, date, timeSlot, geneticReport, medicalReport, referralReport, consent 
+    } = req.body;
+    
+    if (!name || !phone || !email || !age || !appointmentType || !location || !mode || !reason || consent === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newAppt = await Appointment.create({
+      name,
+      phone,
+      email,
+      age,
+      appointmentType,
+      location,
+      mode,
+      reason,
+      status: 'Pending',
+      date: date || new Date().toISOString().split('T')[0],
+      timeSlot: timeSlot || 'TBD',
+      geneticReport: geneticReport || null,
+      medicalReport: medicalReport || null,
+      referralReport: referralReport || null,
+      consent
+    });
+
+    res.status(201).json(newAppt);
+  } catch (err) {
+    console.error('Error creating appointment:', err.message);
+    res.status(500).json({ error: 'Server error while saving appointment' });
   }
-
-  const newAppt = {
-    id: String(appointments.length + 1),
-    name,
-    phone,
-    email,
-    age,
-    appointmentType,
-    location,
-    mode,
-    reason,
-    status: 'Pending',
-    date: date || new Date().toISOString().split('T')[0],
-    timeSlot: timeSlot || 'TBD',
-    geneticReport: geneticReport || null,
-    medicalReport: medicalReport || null,
-    consent,
-    createdAt: new Date().toISOString()
-  };
-
-  appointments.push(newAppt);
-  res.status(201).json(newAppt);
 });
 
-app.patch('/api/appointments/:id', (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+app.patch('/api/appointments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-  const appt = appointments.find(a => a.id === id);
-  if (!appt) {
-    return res.status(404).json({ error: 'Appointment not found' });
+    const appt = await Appointment.findById(id);
+    if (!appt) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (status) {
+      appt.status = status;
+      await appt.save();
+    }
+
+    res.json(appt);
+  } catch (err) {
+    console.error('Error updating appointment:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
-
-  if (status) {
-    appt.status = status;
-  }
-
-  res.json(appt);
 });
 
 // Packages API
