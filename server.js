@@ -723,29 +723,47 @@ app.get('/api/appointments', async (req, res) => {
 app.post('/api/appointments', async (req, res) => {
   try {
     const { 
-      name, phone, email, age, appointmentType, location, 
-      mode, reason, date, timeSlot, geneticReport, medicalReport, referralReport, consent 
+      name, patientName, phone, email, age, appointmentType, location, clinicLocation,
+      mode, preferredMode, reason, message, date, preferredDate, timeSlot, preferredTimeSlot,
+      geneticReport, geneticReportName, medicalReport, medicalReportName, referralReport, referralLetterName, 
+      consent, paymentStatus, source
     } = req.body;
     
-    if (!name || !phone || !email || !age || !appointmentType || !location || !mode || !reason || consent === undefined) {
+    const finalName = name || patientName;
+    const finalLocation = location || clinicLocation;
+    const finalMode = mode || preferredMode;
+    const finalReason = reason;
+
+    if (!finalName || !phone || !email || !appointmentType || !finalLocation || !finalMode || !finalReason || consent === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const newAppt = await Appointment.create({
-      name,
+      name: finalName,
+      patientName: patientName || finalName,
       phone,
       email,
-      age,
+      age: age || '',
       appointmentType,
-      location,
-      mode,
-      reason,
+      location: finalLocation,
+      clinicLocation: clinicLocation || finalLocation,
+      mode: finalMode,
+      preferredMode: preferredMode || finalMode,
+      reason: finalReason,
+      message: message || '',
       status: 'Pending',
-      date: date || new Date().toISOString().split('T')[0],
-      timeSlot: timeSlot || 'TBD',
+      paymentStatus: paymentStatus || 'Pending',
+      source: source || 'Website Appointment Page',
+      date: date || preferredDate || new Date().toISOString().split('T')[0],
+      preferredDate: preferredDate || date || new Date().toISOString().split('T')[0],
+      timeSlot: timeSlot || preferredTimeSlot || 'TBD',
+      preferredTimeSlot: preferredTimeSlot || timeSlot || 'TBD',
       geneticReport: geneticReport || null,
+      geneticReportName: geneticReportName || '',
       medicalReport: medicalReport || null,
+      medicalReportName: medicalReportName || '',
       referralReport: referralReport || null,
+      referralLetterName: referralLetterName || '',
       consent
     });
 
