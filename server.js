@@ -4,13 +4,12 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 // Import Mongoose Models
-import Contact from './models/Contact.js';
-import GeneticTestRequest from './models/GeneticTestRequest.js';
 import Appointment from './models/Appointment.js';
+import GeneticTestRequest from './models/GeneticTestRequest.js';
+import Contact from './models/Contact.js';
 import PatientRegistration from './models/PatientRegistration.js';
 import PartnerLabInquiry from './models/PartnerLabInquiry.js';
 import Review from './models/Review.js';
-
 dotenv.config();
 
 const app = express();
@@ -486,40 +485,72 @@ let testPackages = [
 ];
 
 
-// =============================================
+// ---------------------------------------------
 // API ROUTES — All data persisted to MongoDB
-// =============================================
+// ---------------------------------------------
 
-// Contact API
-app.post('/api/contact', async (req, res) => {
+// Appointments API
+app.get('/api/appointments', async (req, res) => {
   try {
-    const { name, phone, email, subject, message, preferredContactMethod } = req.body;
-    if (!name || !phone) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    const newContact = await Contact.create({
-      name,
-      phone,
-      email: email || '',
-      subject: subject || 'Contact Inquiry',
-      message: message || '',
-      preferredContactMethod: preferredContactMethod || 'phone',
-      status: 'Pending'
-    });
-    res.status(201).json(newContact);
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    res.json(appointments);
   } catch (err) {
-    console.error('Error creating contact:', err.message);
-    res.status(500).json({ error: 'Server error while saving contact' });
+    console.error('Error fetching appointments:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.get('/api/contact', async (req, res) => {
+app.post('/api/appointments', async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
-    res.json(contacts);
+    const { 
+      name, patientName, phone, email, age, appointmentType, location, clinicLocation,
+      mode, preferredMode, reason, message, date, preferredDate, timeSlot, preferredTimeSlot,
+      geneticReport, geneticReportName, medicalReport, medicalReportName, referralReport, referralLetterName, 
+      consent, paymentStatus, source
+    } = req.body;
+    
+    const finalName = name || patientName;
+    const finalLocation = location || clinicLocation;
+    const finalMode = mode || preferredMode;
+    const finalReason = reason;
+
+    if (!finalName || !phone || !email || !appointmentType || !finalLocation || !finalMode || !finalReason || consent === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newAppt = await Appointment.create({
+      name: finalName,
+      patientName: patientName || finalName,
+      phone,
+      email,
+      age: age || '',
+      appointmentType,
+      location: finalLocation,
+      clinicLocation: clinicLocation || finalLocation,
+      mode: finalMode,
+      preferredMode: preferredMode || finalMode,
+      reason: finalReason,
+      message: message || '',
+      status: 'Pending',
+      paymentStatus: paymentStatus || 'Pending',
+      source: source || 'Website Appointment Page',
+      date: date || preferredDate || new Date().toISOString().split('T')[0],
+      preferredDate: preferredDate || date || new Date().toISOString().split('T')[0],
+      timeSlot: timeSlot || preferredTimeSlot || 'TBD',
+      preferredTimeSlot: preferredTimeSlot || timeSlot || 'TBD',
+      geneticReport: geneticReport || null,
+      geneticReportName: geneticReportName || '',
+      medicalReport: medicalReport || null,
+      medicalReportName: medicalReportName || '',
+      referralReport: referralReport || null,
+      referralLetterName: referralLetterName || '',
+      consent
+    });
+
+    res.status(201).json(newAppt);
   } catch (err) {
-    console.error('Error fetching contacts:', err.message);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error creating appointment:', err.message);
+    res.status(500).json({ error: 'Server error while saving appointment' });
   }
 });
 
@@ -555,6 +586,38 @@ app.get('/api/genetic-test-requests', async (req, res) => {
     res.json(requests);
   } catch (err) {
     console.error('Error fetching genetic test requests:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+// Contact API
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, phone, email, subject, message, preferredContactMethod } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const newContact = await Contact.create({
+      name,
+      phone,
+      email: email || '',
+      subject: subject || 'Contact Inquiry',
+      message: message || '',
+      preferredContactMethod: preferredContactMethod || 'phone',
+      status: 'Pending'
+    });
+    res.status(201).json(newContact);
+  } catch (err) {
+    console.error('Error creating contact:', err.message);
+    res.status(500).json({ error: 'Server error while saving contact' });
+  }
+});
+
+app.get('/api/contact', async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.json(contacts);
+  } catch (err) {
+    console.error('Error fetching contacts:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -853,6 +916,29 @@ app.patch('/api/packages/:id', (req, res) => {
   res.json(pkg);
 });
 
+app.patch('/api/appointments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const appt = await Appointment.findById(id);
+    if (!appt) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (status) {
+      appt.status = status;
+      await appt.save();
+    }
+
+    res.json(appt);
+  } catch (err) {
+    console.error('Error updating appointment:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Appointments API was successfully isolated.
 
 // Connect to MongoDB and start the server only upon success
 mongoose.connect(MONGO_URI)
