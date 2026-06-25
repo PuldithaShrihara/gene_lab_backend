@@ -534,7 +534,7 @@ let testPackages = [
 // ---------------------------------------------
 
 // Appointments API
-app.get('/api/appointments', async (req, res) => {
+app.get('/api/appointments', verifyAdmin, async (req, res) => {
   try {
     const appointments = await Appointment.find().sort({ createdAt: -1 });
     res.json(appointments);
@@ -641,7 +641,7 @@ app.post('/api/genetic-test-requests', async (req, res) => {
   }
 });
 
-app.get('/api/genetic-test-requests', async (req, res) => {
+app.get('/api/genetic-test-requests', verifyAdmin, async (req, res) => {
   try {
     const requests = await GeneticTestRequest.find().sort({ createdAt: -1 });
     res.json(requests);
@@ -673,7 +673,7 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.get('/api/contact', async (req, res) => {
+app.get('/api/contact', verifyAdmin, async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
     res.json(contacts);
@@ -715,7 +715,7 @@ app.post('/api/patient-registrations', async (req, res) => {
   }
 });
 
-app.get('/api/patient-registrations', async (req, res) => {
+app.get('/api/patient-registrations', verifyAdmin, async (req, res) => {
   try {
     const registrations = await PatientRegistration.find().sort({ createdAt: -1 });
     res.json(registrations);
@@ -749,7 +749,7 @@ app.post('/api/partner-lab-inquiries', async (req, res) => {
   }
 });
 
-app.get('/api/partner-lab-inquiries', async (req, res) => {
+app.get('/api/partner-lab-inquiries', verifyAdmin, async (req, res) => {
   try {
     const inquiries = await PartnerLabInquiry.find().sort({ createdAt: -1 });
     res.json(inquiries);
@@ -781,7 +781,7 @@ app.post('/api/reviews', async (req, res) => {
   }
 });
 
-app.get('/api/reviews', async (req, res) => {
+app.get('/api/reviews', verifyAdmin, async (req, res) => {
   try {
     const reviews = await Review.find().sort({ createdAt: -1 });
     res.json(reviews);
@@ -792,7 +792,7 @@ app.get('/api/reviews', async (req, res) => {
 });
 
 // Stats Endpoint
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', verifyAdmin, async (req, res) => {
   try {
     const totalAppointments = await Appointment.countDocuments();
     const pending = await Appointment.countDocuments({ status: 'Pending' });
@@ -821,7 +821,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Config Endpoint
-app.get('/api/config', (req, res) => {
+app.get('/api/config', verifyAdmin, (req, res) => {
   res.json(config);
 });
 
@@ -834,7 +834,7 @@ app.post('/api/config', (req, res) => {
 });
 
 // Appointments API
-app.get('/api/appointments', async (req, res) => {
+app.get('/api/appointments', verifyAdmin, async (req, res) => {
   try {
     const appointments = await Appointment.find().sort({ createdAt: -1 });
     res.json(appointments);
