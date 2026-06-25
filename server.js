@@ -26,6 +26,8 @@ const MONGO_URI = process.env.MONGO_URI;
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -554,24 +556,41 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
+
+
 // Genetic Test Requests API
 app.post('/api/genetic-test-requests', async (req, res) => {
   try {
-    const { name, phone, email, age, testCategory, reason, referralDetails, preferredContactMethod, consent } = req.body;
-    if (!name || !phone || !email || !testCategory || consent === undefined) {
+    const {
+      name,
+      patientName,
+      phone,
+      email,
+      age,
+      testCategory,
+      reasonForTesting,
+      referralDetails,
+      preferredContactMethod,
+      reportFileName,
+      consent,
+      source
+    } = req.body;
+
+    if (!phone || !email || !testCategory || !reasonForTesting || consent === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
     const newRequest = await GeneticTestRequest.create({
-      name,
+      name: name || patientName || '',
       phone,
       email,
       age: age || '',
       testCategory,
-      reason: reason || '',
+      reason: reasonForTesting || '',
       referralDetails: referralDetails || '',
-      preferredContactMethod: preferredContactMethod || 'email',
+      preferredContactMethod: preferredContactMethod || 'To be confirmed',
       consent,
-      status: 'Pending'
+      status: 'New'
     });
     res.status(201).json(newRequest);
   } catch (err) {
