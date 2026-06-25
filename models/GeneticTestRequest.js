@@ -10,7 +10,13 @@ const geneticTestRequestSchema = new mongoose.Schema({
   referralDetails: { type: String, default: '' },
   preferredContactMethod: { type: String, default: 'email' },
   consent: { type: Boolean, required: true },
-  status: { type: String, default: 'Pending' }
+  status: { type: String, default: 'Pending' },
+  userId: { type: String, default: '' },
+  userName: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
+  userPhoto: { type: String, default: '' },
+  authProvider: { type: String, default: 'google' },
+  submittedBySignedInUser: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('GeneticTestRequest', geneticTestRequestSchema);

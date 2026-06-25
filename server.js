@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 
 // Import Mongoose Models
 import Appointment from './models/Appointment.js';
@@ -36,6 +37,47 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+// --- ADMIN AUTHENTICATION ---
+const verifyAdmin = (req, res, next) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  if (!token) {
+    return res.status(401).json({ error: "Admin token required" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
+    req.admin = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid or expired admin token" });
+  }
+};
+
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+
+  if (
+    username !== process.env.ADMIN_USERNAME ||
+    password !== process.env.ADMIN_PASSWORD
+  ) {
+    return res.status(401).json({ error: "Invalid admin credentials" });
+  }
+
+  const token = jwt.sign(
+    { username, role: "admin" },
+    process.env.ADMIN_JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+
+  res.json({
+    token,
+    username,
+    role: "admin"
+  });
+});
+// ----------------------------
 
 
 // Articles Data

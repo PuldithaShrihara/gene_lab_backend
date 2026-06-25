@@ -16,7 +16,13 @@ const patientRegistrationSchema = new mongoose.Schema({
   currentMedications: { type: String, default: '' },
   uploadedReports: { type: [String], default: [] },
   consent: { type: Boolean, required: true },
-  status: { type: String, default: 'Registered' }
+  status: { type: String, default: 'Registered' },
+  userId: { type: String, default: '' },
+  userName: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
+  userPhoto: { type: String, default: '' },
+  authProvider: { type: String, default: 'google' },
+  submittedBySignedInUser: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('PatientRegistration', patientRegistrationSchema);

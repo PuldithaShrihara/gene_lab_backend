@@ -26,7 +26,13 @@ const appointmentSchema = new mongoose.Schema({
   medicalReportName: { type: String, default: '' },
   referralReport: { type: String, default: null },
   referralLetterName: { type: String, default: '' },
-  consent: { type: Boolean, required: true }
+  consent: { type: Boolean, required: true },
+  userId: { type: String, default: '' },
+  userName: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
+  userPhoto: { type: String, default: '' },
+  authProvider: { type: String, default: 'google' },
+  submittedBySignedInUser: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('Appointment', appointmentSchema);
