@@ -11,6 +11,8 @@ import Contact from './models/Contact.js';
 import PatientRegistration from './models/PatientRegistration.js';
 import PartnerLabInquiry from './models/PartnerLabInquiry.js';
 import Review from './models/Review.js';
+import User from './models/User.js';
+import TestAllocation from './models/TestAllocation.js';
 dotenv.config();
 
 const app = express();
@@ -1001,6 +1003,135 @@ app.patch('/api/appointments/:id', async (req, res) => {
 
 // Appointments API was successfully isolated.
 
+// --- USER SYNC API ---
+app.post("/api/users/sync", async (req, res) => {
+  try {
+    const { uid, name, email, photoURL, provider } = req.body;
+
+    if (!uid || !email) {
+      return res.status(400).json({ error: "Missing user details" });
+    }
+
+    const savedUser = await User.findOneAndUpdate(
+      { uid },
+      {
+        uid,
+        name,
+        email,
+        photoURL,
+        provider: provider || "google",
+        lastLoginAt: new Date()
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json(savedUser);
+  } catch (error) {
+    console.error("User sync error:", error);
+    res.status(500).json({ error: "Failed to sync user" });
+  }
+});
+
+// --- ADMIN DASHBOARD APIs ---
+
+// 1. Users
+app.get("/api/admin/users", verifyAdmin, async (req, res) => {
+  try {
+    const users = await User.find().sort({ lastLoginAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// 2. Patients (Alias for patient-registrations)
+app.get("/api/admin/patients", verifyAdmin, async (req, res) => {
+  try {
+    const patients = await PatientRegistration.find().sort({ createdAt: -1 });
+    res.json(patients);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch patients" });
+  }
+});
+
+// 3. Appointments (Alias for appointments)
+app.get("/api/admin/appointments", verifyAdmin, async (req, res) => {
+  try {
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    res.json(appointments);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch appointments" });
+  }
+});
+
+app.patch("/api/admin/appointments/:id/status", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const appt = await Appointment.findByIdAndUpdate(id, { status }, { new: true });
+    if (!appt) return res.status(404).json({ error: "Appointment not found" });
+    res.json(appt);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update appointment status" });
+  }
+});
+
+// 4. Payments (Derived from Appointments)
+app.get("/api/admin/payments", verifyAdmin, async (req, res) => {
+  try {
+    const appointments = await Appointment.find({
+      $or: [
+        { paymentSlipName: { $exists: true, $ne: '' } },
+        { paymentStatus: { $exists: true, $ne: 'Pending' } }
+      ]
+    }).sort({ createdAt: -1 });
+    res.json(appointments);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch payments" });
+  }
+});
+
+app.patch("/api/admin/payments/:id/status", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body;
+    const appt = await Appointment.findByIdAndUpdate(id, { paymentStatus }, { new: true });
+    if (!appt) return res.status(404).json({ error: "Appointment not found" });
+    res.json(appt);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update payment status" });
+  }
+});
+
+// 5. Test Allocations
+app.get("/api/admin/tests", verifyAdmin, async (req, res) => {
+  try {
+    const tests = await TestAllocation.find().sort({ createdAt: -1 });
+    res.json(tests);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch test allocations" });
+  }
+});
+
+app.post("/api/admin/tests", verifyAdmin, async (req, res) => {
+  try {
+    const newTest = await TestAllocation.create(req.body);
+    res.status(201).json(newTest);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create test allocation" });
+  }
+});
+
+app.patch("/api/admin/tests/:id", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTest = await TestAllocation.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedTest) return res.status(404).json({ error: "Test not found" });
+    res.json(updatedTest);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update test allocation" });
+  }
+});
 // Connect to MongoDB and start the server only upon success
 mongoose.connect(MONGO_URI)
   .then(() => {
